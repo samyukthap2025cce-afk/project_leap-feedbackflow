@@ -1,0 +1,542 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Course Feedback System</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background-color: #f4f6f8;
+        }
+
+        header {
+            background-color: #1f4e79;
+            color: white;
+            text-align: center;
+            padding: 25px;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1100px;
+            margin: 30px auto;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            color: #1f4e79;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+
+        button {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 5px;
+        }
+
+        .add-btn {
+            background-color: #1f4e79;
+            color: white;
+        }
+
+        .delete-btn {
+            background-color: #d9534f;
+            color: white;
+        }
+
+        .edit-btn {
+            background-color: #f0ad4e;
+            color: white;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #1f4e79;
+            color: white;
+        }
+
+        .message {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>Course Feedback System</h1>
+    <p>Manage Courses and Feedback</p>
+</header>
+
+<div class="container">
+
+    <!-- COURSE FORM -->
+    <div class="card">
+        <h2>Add Course</h2>
+
+        <input type="hidden" id="courseId">
+
+        <label>Course Name</label>
+        <input type="text" id="courseName" placeholder="Enter course name">
+
+        <label>Course Code</label>
+        <input type="text" id="courseCode" placeholder="Enter course code">
+
+        <label>Faculty Name</label>
+        <input type="text" id="facultyName" placeholder="Enter faculty name">
+
+        <button class="add-btn" onclick="saveCourse()">Save Course</button>
+
+        <p class="message" id="courseMessage"></p>
+    </div>
+
+    <!-- COURSE TABLE -->
+    <div class="card">
+        <h2>Courses</h2>
+
+        <button class="add-btn" onclick="loadCourses()">
+            Refresh Courses
+        </button>
+
+        <table>
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Course Name</th>
+                <th>Course Code</th>
+                <th>Faculty Name</th>
+                <th>Actions</th>
+            </tr>
+            </thead>
+
+            <tbody id="courseTable">
+            </tbody>
+        </table>
+    </div>
+
+    <!-- FEEDBACK FORM -->
+    <div class="card">
+        <h2>Create Feedback Form</h2>
+
+        <label>Form Name</label>
+        <input type="text" id="formName"
+               placeholder="Enter feedback form name">
+
+        <label>Course ID</label>
+        <input type="number" id="formCourseId"
+               placeholder="Enter course ID">
+
+        <button class="add-btn" onclick="createFeedbackForm()">
+            Create Feedback Form
+        </button>
+
+        <p class="message" id="formMessage"></p>
+    </div>
+
+    <!-- QUESTION -->
+    <div class="card">
+        <h2>Add Question</h2>
+
+        <label>Question</label>
+        <textarea id="questionText"
+                  placeholder="Enter feedback question"></textarea>
+
+        <label>Feedback Form ID</label>
+        <input type="number" id="questionFormId"
+               placeholder="Enter feedback form ID">
+
+        <button class="add-btn" onclick="createQuestion()">
+            Add Question
+        </button>
+
+        <p class="message" id="questionMessage"></p>
+    </div>
+
+    <!-- RESPONSE -->
+    <div class="card">
+        <h2>Add Response</h2>
+
+        <label>Answer</label>
+        <input type="text" id="answer"
+               placeholder="Enter answer">
+
+        <label>Question ID</label>
+        <input type="number" id="responseQuestionId"
+               placeholder="Enter question ID">
+
+        <button class="add-btn" onclick="createResponse()">
+            Submit Response
+        </button>
+
+        <p class="message" id="responseMessage"></p>
+    </div>
+
+</div>
+
+<script>
+
+    const BASE_URL = "http://localhost:8080";
+
+
+    // =========================
+    // COURSE
+    // =========================
+
+    async function saveCourse() {
+
+        const id = document.getElementById("courseId").value;
+
+        const course = {
+            courseName: document.getElementById("courseName").value,
+            courseCode: document.getElementById("courseCode").value,
+            facultyName: document.getElementById("facultyName").value
+        };
+
+        let url = BASE_URL + "/courses";
+        let method = "POST";
+
+        if (id) {
+            url = BASE_URL + "/courses/" + id;
+            method = "PUT";
+        }
+
+        try {
+
+            const response = await fetch(url, {
+                method: method,
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(course)
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to save course");
+            }
+
+            document.getElementById("courseMessage").innerText =
+                id ? "Course updated successfully!" :
+                    "Course added successfully!";
+
+            clearCourseForm();
+            loadCourses();
+
+        } catch (error) {
+
+            document.getElementById("courseMessage").innerText =
+                "Error: " + error.message;
+        }
+    }
+
+
+    // GET ALL COURSES
+
+    async function loadCourses() {
+
+        try {
+
+            const response =
+                await fetch(BASE_URL + "/courses");
+
+            const courses = await response.json();
+
+            const table =
+                document.getElementById("courseTable");
+
+            table.innerHTML = "";
+
+            courses.forEach(course => {
+
+                const row = `
+                    <tr>
+                        <td>${course.id}</td>
+                        <td>${course.courseName}</td>
+                        <td>${course.courseCode}</td>
+                        <td>${course.facultyName}</td>
+
+                        <td>
+
+                            <button class="edit-btn"
+                                onclick="editCourse(
+                                ${course.id},
+                                '${course.courseName}',
+                                '${course.courseCode}',
+                                '${course.facultyName}'
+                                )">
+                                Edit
+                            </button>
+
+                            <button class="delete-btn"
+                                onclick="deleteCourse(${course.id})">
+                                Delete
+                            </button>
+
+                        </td>
+                    </tr>
+                `;
+
+                table.innerHTML += row;
+            });
+
+        } catch (error) {
+
+            console.log(error);
+        }
+    }
+
+
+    // EDIT COURSE
+
+    function editCourse(id, name, code, faculty) {
+
+        document.getElementById("courseId").value = id;
+
+        document.getElementById("courseName").value = name;
+
+        document.getElementById("courseCode").value = code;
+
+        document.getElementById("facultyName").value = faculty;
+
+        window.scrollTo(0, 0);
+    }
+
+
+    // DELETE COURSE
+
+    async function deleteCourse(id) {
+
+        if (!confirm("Are you sure you want to delete this course?")) {
+            return;
+        }
+
+        try {
+
+            await fetch(
+                BASE_URL + "/courses/" + id,
+                {
+                    method: "DELETE"
+                }
+            );
+
+            loadCourses();
+
+            document.getElementById("courseMessage").innerText =
+                "Course deleted successfully!";
+
+        } catch (error) {
+
+            console.log(error);
+        }
+    }
+
+
+    // CLEAR COURSE FORM
+
+    function clearCourseForm() {
+
+        document.getElementById("courseId").value = "";
+
+        document.getElementById("courseName").value = "";
+
+        document.getElementById("courseCode").value = "";
+
+        document.getElementById("facultyName").value = "";
+    }
+
+
+    // =========================
+    // FEEDBACK FORM
+    // =========================
+
+    async function createFeedbackForm() {
+
+        const form = {
+
+            formName:
+            document.getElementById("formName").value,
+
+            course: {
+
+                id:
+                    Number(
+                        document.getElementById("formCourseId").value
+                    )
+            }
+        };
+
+        try {
+
+            const response = await fetch(
+                BASE_URL + "/feedback-forms",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+
+                    body: JSON.stringify(form)
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error("Failed to create feedback form");
+            }
+
+            document.getElementById("formMessage").innerText =
+                "Feedback form created successfully!";
+
+        } catch (error) {
+
+            document.getElementById("formMessage").innerText =
+                "Error: " + error.message;
+        }
+    }
+
+
+    // =========================
+    // QUESTION
+    // =========================
+
+    async function createQuestion() {
+
+        const question = {
+
+            questionText:
+            document.getElementById("questionText").value,
+
+            feedbackForm: {
+
+                id:
+                    Number(
+                        document.getElementById("questionFormId").value
+                    )
+            }
+        };
+
+        try {
+
+            const response = await fetch(
+                BASE_URL + "/questions",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+
+                    body: JSON.stringify(question)
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error("Failed to create question");
+            }
+
+            document.getElementById("questionMessage").innerText =
+                "Question added successfully!";
+
+        } catch (error) {
+
+            document.getElementById("questionMessage").innerText =
+                "Error: " + error.message;
+        }
+    }
+
+
+    // =========================
+    // RESPONSE
+    // =========================
+
+    async function createResponse() {
+
+        const responseData = {
+
+            answer:
+            document.getElementById("answer").value,
+
+            question: {
+
+                id:
+                    Number(
+                        document.getElementById("responseQuestionId").value
+                    )
+            }
+        };
+
+        try {
+
+            const response = await fetch(
+                BASE_URL + "/responses",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+
+                    body: JSON.stringify(responseData)
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error("Failed to submit response");
+            }
+
+            document.getElementById("responseMessage").innerText =
+                "Response submitted successfully!";
+
+        } catch (error) {
+
+            document.getElementById("responseMessage").innerText =
+                "Error: " + error.message;
+        }
+    }
+
+
+    // Load courses when page opens
+
+    window.onload = function() {
+
+        loadCourses();
+
+    };
+
+</script>
+
+</body>
+</html>
+```
